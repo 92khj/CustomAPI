@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd">
+
+    <!--mvc 패턴을 사용.-->
+    <mvc:annotation-driven />
+
+    <!--https://jayviii.tistory.com/10-->
+    <context:component-scan base-package="com.khj.controller" />
+    <context:component-scan base-package="com.khj.customize.*" />
+    <context:component-scan base-package="com.khj.customize.wizaiapi" />
+    <context:component-scan base-package="com.khj.customize.utils" />
+    <context:component-scan base-package="com.khj.customize.openapi" />
+    <context:component-scan base-package="com.khj.customize.openapi.util" />
+    <context:component-scan base-package="com.khj.customize.openapi.forecast" />
+    <context:component-scan base-package="com.khj.customize.wizaiapi.controller" />
+    <context:component-scan base-package="com.khj.customize.wizaiapi.midforecast" />
+    <context:component-scan base-package="com.khj.customize.wizaiapi.mapper" />
+    <context:component-scan base-package="com.khj.customize.wizaiapi.service" />
+    <context:component-scan base-package="com.khj.customize.wizaiapi.vo" />
+    <context:component-scan base-package="com.khj.customize.powerweatherapi.controller" />
+
+    <context:property-placeholder location="classpath:properties/db.properties"/>
+
+    <!--Spring MVC 패턴 기본 설정 손댈필요X-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/views/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+    <!--resources properties 안에 db.properties 의 내용을 호출.-->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location">
+            <value>classpath:properties/db.properties</value>
+        </property>
+    </bean>
+
+    <!--resources properties 안에있는 driver url user password를 사용함 db변경할시 db.properties 쪽변경하면됩니다.-->
+    <!--mybatis-config 설정에서 마이바이스와 연동될 VO 설정 추가해줘야함.-->
+    <!--그후에 beachMapper.xml 에서 추가적으로 데이터쿼리를 작성해야됨.-->
+    <!--DB.properties에서 데이터 가져오니깐 war로 묶을시 대소문자 문제로 에러나는거 같음..-->
+<!--    <bean id="dataSource"-->
+<!--          class="org.springframework.jdbc.datasource.DriverManagerDataSource">-->
+<!--        <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />-->
+<!--        <property name="url" value="jdbc:oracle:thin:@172.20.81.143:11521/COMISS" />-->
+<!--        &lt;!&ndash;<property name="url" value="jdbc:oracle:thin:@192.168.1.126:1521/xe" />&ndash;&gt;-->
+<!--        &lt;!&ndash;<property name="url" value="jdbc:oracle:thin:@sdb.comis5.kma.go.kr:11521/COMISS" />&ndash;&gt;-->
+<!--        <property name="username" value="AP_MIS_BIG" />-->
+<!--        <property name="password" value="COMIS2112!" />-->
+<!--    </bean>-->
+    <bean id="dataSource"
+          class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="com.tmax.tibero.jdbc.TbDriver"/>
+        <property name="url" value="jdbc:tibero:thin:@172.20.133.29:8629:COMIS" />
+        <!--<property name="url" value="jdbc:tibero:thin:@localhost:8629:tibero" />-->
+        <property name="username" value="afs" />
+        <property name="password" value="afs" />
+    </bean>
+
+    <!--sqlSessionFactory 내부적으로 SQLSession을 만들어내는존재-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <property name="configLocation" value="WEB-INF/mybatis/mybatis-config.xml" />
+    </bean>
+
+    <!-- sqlSession db와의 Connection을 생성하거나 원하는 sql을 전달하고 결과를 리턴받을 수 있게 하는 개체이다.-->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg index="0" name="sqlSessionFactory" ref="sqlSessionFactory" />
+    </bean>
+
+    <!--CacheManager Bean설정-->
+    <cache:annotation-driven/>
+
+    <!-- EHCache 기반 CacheManager 설정 -->
+    <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager">
+        <property name="cacheManager" ref="ehcache"/>
+    </bean>
+
+    <!-- ehcache.xml 설정 로드 -->
+    <bean id="ehcache" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+        <property name="configLocation" value="WEB-INF/ehcache/ehcache.xml"/>
+        <property name="shared" value="true"/>
+    </bean>
+
+</beans>

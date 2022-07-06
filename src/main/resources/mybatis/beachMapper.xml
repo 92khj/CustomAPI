@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.khj.customize.wizaiapi.mapper.BeachMapper">
+
+    <select id="findByWaterVOL" resultType="hashmap" parameterType="hashMap">
+        <![CDATA[
+        SELECT
+        A.BEACH_ID as beachnum,
+        TO_CHAR( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') , 'YYYY-MM-DD' )  AS basedate,
+        A.TM_STN_NM as twStnld,
+        B.TM as basetime ,
+        nvl(TO_CHAR(B.TW),'-') as tw
+        FROM CRPT_BEACH_INFO A ,
+        (
+        SELECT
+        'A' AS TM_STN_CLASS ,
+        A.STN_ID ,
+        A.TM ,
+        B.TW
+        FROM (
+        SELECT
+        A.STN_ID ,
+        MAX(A.TM) AS TM
+        FROM EXT_NORI_LS A
+        WHERE 1=1
+        AND A.TM BETWEEN ( TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+        AND A.TW IS NOT NULL
+        GROUP BY A.STN_ID
+        ) A , EXT_NORI_LS B
+        WHERE A.STN_ID = B.STN_ID
+        AND   A.TM = B.TM
+        UNION ALL
+        SELECT
+        'B' AS TM_STN_CLASS ,
+        A.STN_ID ,
+        A.TM ,
+        B.TW
+        FROM (
+        SELECT
+        A.STN_ID ,
+        MAX(A.TM) AS TM
+        FROM SEA_BUOY A
+        WHERE 1=1
+        AND A.TM BETWEEN ( TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+        AND A.TW IS NOT NULL
+        GROUP BY A.STN_ID
+        ) A , SEA_BUOY B
+        WHERE A.STN_ID = B.STN_ID
+        AND   A.TM = B.TM
+        UNION ALL
+        SELECT
+        'C' AS TM_STN_CLASS ,
+        A.STN_ID ,
+        A.TM ,
+        B.TW
+        FROM (
+        SELECT
+        A.STN_ID ,
+        MAX(A.TM) AS TM
+        FROM SEA_LHAWS A
+        WHERE 1=1
+        AND A.TM BETWEEN ( TO_DATE(substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+        AND A.TW IS NOT NULL
+        GROUP BY A.STN_ID
+        ) A , SEA_LHAWS B
+        WHERE A.STN_ID = B.STN_ID
+        AND   A.TM = B.TM
+        UNION ALL
+        SELECT
+        'D' AS TM_STN_CLASS ,
+        A.STN_ID ,
+        A.TM ,
+        B.TW
+        FROM (
+        SELECT
+        A.STN_ID ,
+        MAX(A.TM) AS TM
+        FROM SEA_BUOY_COSMOS A	--파고부이
+        WHERE 1=1
+        AND A.TM BETWEEN ( TO_DATE(substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+        AND A.TW IS NOT NULL
+        GROUP BY A.STN_ID
+        ) A , SEA_BUOY_COSMOS B
+        WHERE A.STN_ID = B.STN_ID
+        AND   A.TM = B.TM
+        ) B
+        WHERE 1=1
+        AND   A.TM_STN_ID = B.STN_ID (+)
+        AND   A.BEACH_ID  = #{beach_num}
+        AND   A.TM_STN_CLASS = B.TM_STN_CLASS (+)
+        ORDER BY A.BEACH_ID
+        ]]>
+    </select>
+    <select id="findByFargoVOL" resultType="hashmap" parameterType="hashMap">
+        <![CDATA[
+        SELECT
+            A.BEACH_ID as beachnum,
+            TO_CHAR( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') , 'YYYY-MM-DD' )  AS basedate,
+            B.TM as basetime,
+            A.HW_SEA_NM as whStnld,
+            A.HW_STN_NM as whRegld,
+            DECODE( B.WH_SIG , '' , '-' , null , '-' , DECODE( substr(B.WH_SIG,1,1) , '.' , NVL(TO_CHAR(ROUND((B.WH_SIG),2), 'FM999999990.0') , '-' )  , NVL(TO_CHAR(ROUND((B.WH_SIG),2), 'FM999999990.0') , '-' ) ) ) as wh
+        FROM CRPT_BEACH_INFO A ,
+        (
+        -- 국립해양조사원(검조소)
+        SELECT
+                'A' AS HW_STN_CLASS ,
+                A.STN_ID ,
+                A.TM ,
+                B.WH_SIG       -- 유의파고
+            FROM (
+                SELECT
+                    A.STN_ID ,
+                    MAX(A.TM) AS TM
+                FROM AFS.EXT_NORI_LS A     -- 국립해양조사원(검조소)
+                WHERE 1=1
+                AND A.TM BETWEEN ( TO_DATE(substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+                AND A.WH_SIG IS NOT NULL
+                GROUP BY A.STN_ID
+                 ) A , EXT_NORI_LS B
+            WHERE A.STN_ID = B.STN_ID
+            AND   A.TM = B.TM
+            UNION ALL
+            -- 부이
+            SELECT
+                'B' AS HW_STN_CLASS ,
+                A.STN_ID ,
+                A.TM ,
+                B.WH_SIG       -- 유의파고
+            FROM (
+                SELECT
+                    A.STN_ID ,
+                    MAX(A.TM) AS TM
+                FROM SEA_BUOY A     -- 부이
+                WHERE 1=1
+                AND A.TM BETWEEN ( TO_DATE(substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+                AND A.WH_SIG IS NOT NULL
+                GROUP BY A.STN_ID
+                ) A , AFS.SEA_BUOY B
+            WHERE A.STN_ID = B.STN_ID
+            AND   A.TM = B.TM
+            UNION ALL
+            -- 등표
+                SELECT
+                    'C' AS HW_STN_CLASS ,
+                    A.STN_ID ,
+                    A.TM ,
+                    B.WH_SIG       -- 유의파고
+                FROM (
+                    SELECT
+                        A.STN_ID ,
+                        MAX(A.TM) AS TM
+                    FROM AFS.SEA_LHAWS A     -- 등표
+                    WHERE 1=1
+                    AND A.TM BETWEEN ( TO_DATE(substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+                    AND A.WH_SIG IS NOT NULL
+                    GROUP BY A.STN_ID
+                ) A , AFS.SEA_LHAWS B
+                WHERE A.STN_ID = B.STN_ID
+                AND   A.TM = B.TM
+                UNION ALL
+            -- 파고부이
+            SELECT
+                'D' AS HW_STN_CLASS ,
+                A.STN_ID ,
+                A.TM ,
+                B.WH_SIG       -- 유의파고
+                FROM (
+                    SELECT
+                        A.STN_ID ,
+                        MAX(A.TM) AS TM
+                    FROM AFS.SEA_BUOY_COSMOS A     -- 파고부이
+                    WHERE 1=1
+                    AND A.TM BETWEEN ( TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+                    AND A.WH_SIG IS NOT NULL
+                    GROUP BY A.STN_ID
+                ) A , AFS.SEA_BUOY_COSMOS B
+                WHERE A.STN_ID = B.STN_ID
+                AND   A.TM = B.TM
+                UNION ALL
+            -- 파랑계
+            SELECT
+                'E' AS HW_STN_CLASS ,
+                A.STN_ID ,
+                A.TM ,
+                B.WH_SIG       -- 유의파고
+               FROM (
+                    SELECT
+                        A.STN_ID ,
+                        MAX(A.TM) AS TM
+                    FROM AFS.SEA_RWH A     -- 파랑계
+                    WHERE 1=1
+                AND A.TM BETWEEN ( TO_DATE( substr(#{date},0,12), 'YYYYMMDDHH24' ) - 3/24 ) AND TO_DATE( substr(#{date},0,12) , 'YYYYMMDDHH24' )
+                AND A.WH_SIG IS NOT NULL
+                GROUP BY A.STN_ID
+            ) A , AFS.SEA_RWH B
+        WHERE A.STN_ID = B.STN_ID
+        AND   A.TM = B.TM
+        ) B
+        WHERE 1=1
+        AND   A.HW_STN_ID = B.STN_ID (+)
+        AND   A.BEACH_ID  = #{beach_num}
+        AND   A.HW_STN_CLASS = B.HW_STN_CLASS (+)
+        ORDER BY A.BEACH_ID
+        ]]>
+    </select>
+
+    <select id="findBySunVOL" resultType="hashmap" parameterType="hashMap">
+        <![CDATA[
+        SELECT
+            A.BEACH_ID as beachnum ,
+            TO_CHAR( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') , 'YYYY-MM-DD' )  AS basedate,
+            substr(T.T_TM_SR,1,3) || ':' || substr(T.T_TM_SR,4,2)   AS sunrise    ,
+            substr(T.T_TM_SS,1,3) || ':' || substr(T.T_TM_SS,4,2)   AS sunset
+        FROM AFS.CRPT_BEACH_INFO A ,
+            (
+            SELECT
+            T.SMT_ID  AS T_SMT_ID   ,
+            T.SMT_TM  AS T_SMT_TM   ,
+            TO_CHAR(T.TM_SR,'0000')   AS T_TM_SR    ,    -- 일출시각 (시분)
+            TO_CHAR(T.TM_SS,'0000')   AS T_TM_SS         -- 일몰시각 (시분)
+            FROM AFS.CRPT_FCT_SMT T
+            WHERE 1=1
+            AND   T.SMT_TM = TO_DATE ( substr(#{date},1,8) , 'yyyymmdd')
+            ) T
+        WHERE 1=1
+        AND   A.BEACH_ID = T.T_SMT_ID(+)
+        AND A.BEACH_ID = #{beach_num}
+        ORDER BY A.BEACH_ID
+        ]]>
+    </select>
+
+    <select id="findByTideVOL" resultType="hashmap" parameterType="hashMap">
+        <![CDATA[
+        SELECT
+            A.BEACH_ID AS beachnum,
+            A.TI_STN_NM AS tiStnld,
+            TO_CHAR( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') , 'YYYY-MM-DD' )  AS basedate,
+            substr(B.TI_FT,1,3) || ':' || substr(B.TI_FT,4,2)   AS tiTime ,
+            nvl(TO_CHAR(B.TI_TYPE),'-') as tiType ,
+            nvl(TO_CHAR(B.TI_TH),'-') as tilevel
+        FROM AFS.CRPT_BEACH_INFO A ,
+        (
+            SELECT
+                FT1.TI_STN_ID    ,
+                FT1.TI_STN_NM    ,
+                FT1.TI_TM,
+                'FT1' AS TI_TYPE ,
+                TO_CHAR(FT1.TM_FT1,'0000')    TI_FT  ,  -- 만조1시간
+                FT1.TH_FT1    TI_TH     -- 만조1수위
+            FROM AFS.CRPT_FCT_TI FT1
+            WHERE 1=1
+            AND   FT1.TI_TM = ( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') + 0 )
+            UNION ALL
+            SELECT
+                FT2.TI_STN_ID    ,
+                FT2.TI_STN_NM    ,
+                FT2.TI_TM,
+                'FT2' AS TI_TYPE ,
+                TO_CHAR(FT2.TM_FT2,'0000')    TI_FT  ,  -- 만조2시간
+                FT2.TH_FT2    TI_TH     -- 만조2수위
+            FROM AFS.CRPT_FCT_TI FT2
+            WHERE 1=1
+            AND   FT2.TI_TM = ( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') + 0 )
+            UNION ALL
+            SELECT
+                ET1.TI_STN_ID    ,
+                ET1.TI_STN_NM    ,
+                ET1.TI_TM,
+                'ET1' AS TI_TYPE ,
+                TO_CHAR(ET1.TM_ET1,'0000')    TI_FT  ,  -- 간조1시간
+                ET1.TH_ET1    TI_TH     -- 간조1수위
+            FROM AFS.CRPT_FCT_TI ET1
+            WHERE 1=1
+            AND   ET1.TI_TM = ( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') + 0 )
+            UNION ALL
+            SELECT
+                ET2.TI_STN_ID   ,
+                ET2.TI_STN_NM    ,
+                ET2.TI_TM,
+                'ET2' AS TI_TYPE ,
+                TO_CHAR(ET2.TM_ET2,'0000')    TI_FT  ,  -- 간조2시간
+                ET2.TH_ET2    TI_TH     -- 간조2수위
+            FROM AFS.CRPT_FCT_TI ET2
+            WHERE 1=1
+            AND   ET2.TI_TM = ( TO_DATE ( substr(#{date},1,8) , 'yyyymmdd') + 0 )
+        ) B
+        WHERE 1=1
+        AND A.TI_STN_ID = B.TI_STN_ID(+)
+        AND A.BEACH_ID = #{beach_num}
+        ORDER BY BEACH_ID ASC ,  B.TI_FT ASC
+        ]]>
+    </select>
+
+</mapper>

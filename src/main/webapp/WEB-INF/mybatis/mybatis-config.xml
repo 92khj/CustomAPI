@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <setting name="jdbcTypeForNull" value="NULL" />
+    </settings>
+    <typeAliases>
+        <typeAlias type="com.khj.customize.wizaiapi.vo.WaterVO" alias="WaterVO"/>
+        <typeAlias type="com.khj.customize.wizaiapi.vo.FargoVO" alias="FargoVO"/>
+        <typeAlias type="com.khj.customize.wizaiapi.vo.TideVO" alias="TideVO"/>
+        <typeAlias type="com.khj.customize.wizaiapi.vo.SunVO" alias="SunVO"/>
+    </typeAliases>
+    <mappers>
+        <mapper resource="mybatis/beachMapper.xml" />
+
+    </mappers>
+</configuration>
